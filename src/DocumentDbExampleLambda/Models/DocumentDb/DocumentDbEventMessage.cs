@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+
 namespace DocumentDbExampleLambda.Models.DocumentDb;
 
 // https://docs.aws.amazon.com/lambda/latest/dg/example_serverless_DocumentDB_Lambda_section.html
@@ -6,52 +8,52 @@ namespace DocumentDbExampleLambda.Models.DocumentDb;
 public class Event
 {
     [JsonPropertyName("eventSourceArn")]
-    public string EventSourceArn { get; set; }
+    public required string EventSourceArn { get; set; }
 
     [JsonPropertyName("events")]
-    public List<DocumentDbEventRecord> Events { get; set; }
+    public required List<DocumentDbEventRecord> Events { get; set; }
 
     [JsonPropertyName("eventSource")]
-    public string EventSource { get; set; }
+    public required string EventSource { get; set; }
 }
 
 public class DocumentDbEventRecord
 {
     [JsonPropertyName("event")]
-    public EventData Event { get; set; }
+    public required EventData Event { get; set; }
 }
 
 public class EventData
 {
     [JsonPropertyName("_id")]
-    public IdData Id { get; set; }
+    public required IdData Id { get; set; }
 
     [JsonPropertyName("clusterTime")]
-    public ClusterTime ClusterTime { get; set; }
+    public required ClusterTime ClusterTime { get; set; }
 
     [JsonPropertyName("documentKey")]
-    public DocumentKey DocumentKey { get; set; }
+    public required DocumentKey DocumentKey { get; set; }
 
     [JsonPropertyName("fullDocument")]
-    public Dictionary<string, object> FullDocument { get; set; }
+    public required Dictionary<string, object> FullDocument { get; set; }
 
     [JsonPropertyName("ns")]
-    public Namespace Ns { get; set; }
+    public required Namespace Ns { get; set; }
 
     [JsonPropertyName("operationType")]
-    public string OperationType { get; set; }
+    public required string OperationType { get; set; }
 }
 
 public class IdData
 {
     [JsonPropertyName("_data")]
-    public string Data { get; set; }
+    public required string Data { get; set; }
 }
 
 public class ClusterTime
 {
     [JsonPropertyName("$timestamp")]
-    public Timestamp Timestamp { get; set; }
+    public required Timestamp Timestamp { get; set; }
 }
 
 public class Timestamp
@@ -61,25 +63,30 @@ public class Timestamp
 
     [JsonPropertyName("i")]
     public int I { get; set; }
+    
+    public DateTime ToUtcTime()
+    {
+        return new BsonDateTime(T).ToUniversalTime();
+    }
 }
 
 public class DocumentKey
 {
     [JsonPropertyName("_id")]
-    public Id Id { get; set; }
+    public required Id Id { get; set; }
 }
 
 public class Id
 {
     [JsonPropertyName("$oid")]
-    public string Oid { get; set; }
+    public required string Oid { get; set; }
 }
 
 public class Namespace
 {
     [JsonPropertyName("db")]
-    public string Db { get; set; }
+    public required string Db { get; set; }
 
     [JsonPropertyName("coll")]
-    public string Coll { get; set; }
+    public required string Coll { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Amazon.Lambda.Annotations;
 using Amazon.Lambda.Core;
 using DocumentDbExampleLambda.Models.DocumentDb;
 
@@ -7,7 +8,7 @@ using DocumentDbExampleLambda.Models.DocumentDb;
 
 namespace DocumentDbExampleLambda;
 
-public class Function
+public class Function(IKafkaPublisher kafkaPublisher)
 {
     private static readonly string[] ValidOperationTypes =
     [
@@ -21,7 +22,11 @@ public class Function
         RegexOptions.Compiled | RegexOptions.CultureInvariant
     );
 
-    public async Task<string> FunctionHandler(Event @event, ILambdaContext context)
+    [LambdaFunction(ResourceName = "DocumentDbEventFunction")]
+    public async Task<string> FunctionHandler(
+        Event @event, 
+        ILambdaContext context
+    )
     {
         try
         {
@@ -37,8 +42,10 @@ public class Function
             if (eventsOfInterest.Any())
             {
                 context.Logger.LogDebug($"Preparing to public {eventsOfInterest.Count} events of interest");
-                
-                await PublishToKafka(eventsOfInterest);
+
+                await kafkaPublisher.Publish(
+                    eventsOfInterest.Select(e => e.Event)
+                );
                 
                 context.Logger.LogDebug($"All events of interest published to Kafka");
             }
@@ -57,8 +64,4 @@ public class Function
         }
     }
 
-    private async Task PublishToKafka(IEnumerable<DocumentDbEventRecord> events)
-    {
-        
-    }
 }
