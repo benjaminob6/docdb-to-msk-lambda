@@ -4,9 +4,9 @@ namespace DocumentDbExampleLambda.Configuration;
 
 public class KafkaOptions
 {
-    public string[] BootstrapServerHosts { get; set; } = ["localhost"];
+    public required string[] BootstrapServerHosts { get; init; }
     
-    public uint Port { get; set; } = 9092;
+    public int Port { get; init; }
 
     public bool IamEnabled => Port == 9098;
     
@@ -14,11 +14,13 @@ public class KafkaOptions
     {
         get
         {
-            var bootStrapServers = string.Join($":{Port},", BootstrapServerHosts);
+            var hostStrings = BootstrapServerHosts.Select(host => $"{host}:{Port}");
+            
+            var bootStrapServers = string.Join(",", hostStrings);
             
             if (IamEnabled)
             {
-                return new ClientConfig
+                return new ProducerConfig
                 {
                     BootstrapServers = bootStrapServers,
                     SecurityProtocol = SecurityProtocol.SaslSsl,

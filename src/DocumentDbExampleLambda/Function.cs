@@ -44,7 +44,8 @@ public class Function(IKafkaPublisher kafkaPublisher)
                 context.Logger.LogDebug($"Preparing to public {eventsOfInterest.Count} events of interest");
 
                 await kafkaPublisher.Publish(
-                    eventsOfInterest.Select(e => e.Event)
+                    eventsOfInterest.Select(e => e.Event),
+                    context.Logger
                 );
                 
                 context.Logger.LogDebug($"All events of interest published to Kafka");
