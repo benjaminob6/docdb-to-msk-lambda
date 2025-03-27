@@ -25,14 +25,16 @@ public class ChangeEventMapper : IChangeEventMapper
         return (topic, new Message<string, string>
         {
             Timestamp = new Timestamp(timeStamp),
-            Key = $"{eventToPublish.DocumentKey.Id.Oid}_{eventToPublish.ClusterTime.Timestamp.ToUtcTime()}",
+            Key = $"{eventToPublish.DocumentKey.Id.Oid}_{eventToPublish.ClusterTime.Timestamp.T}_{eventToPublish.ClusterTime.Timestamp.I}",
             Value = JsonSerializer.Serialize(new
             {
                 LatestEvent = eventToPublish.FullDocument,
                 Updates = eventToPublish.UpdateDescription
             }),
             Headers = [
-                new Header("x-documentdb-operation-type", Encoding.UTF8.GetBytes(eventToPublish.OperationType))
+                new Header("x-documentdb-operation-type", Encoding.UTF8.GetBytes(eventToPublish.OperationType)),
+                new Header("x-lambda-handled-at", Encoding.UTF8.GetBytes(
+                    DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffK"))),
             ]
         });
     }
