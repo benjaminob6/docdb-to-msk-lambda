@@ -12,7 +12,7 @@ public interface IKafkaTopicManager
 public class KafkaTopicManager(IKafkaAdminClientFactory adminClientFactory): IKafkaTopicManager
 {
     private readonly IAdminClient _adminClient = adminClientFactory.Create();
-    private readonly ConcurrentBag<string> _topics = new();
+    private readonly Dictionary<string, bool> _topics = new(); // BAD
 
     public async Task CreateTopicIfNotExists(string topic)
     {
@@ -21,28 +21,41 @@ public class KafkaTopicManager(IKafkaAdminClientFactory adminClientFactory): IKa
             await GetExistingTopics();
         }
 
-        if (_topics.Contains(topic))
+        if (_topics.ContainsKey(topic))
         {
             return;
         }
 
-        await _adminClient.CreateTopicsAsync(new[]
+        try
         {
-            // TODO: Make Configurable
-            new TopicSpecification
+            await _adminClient.CreateTopicsAsync([
+                // TODO: Make Configurable
+                new TopicSpecification
+                {
+                    Name = topic,
+                    NumPartitions = 1,
+                    ReplicationFactor = 2,
+                }
+            ]);
+        }
+        catch (CreateTopicsException e)
+        {
+            if (e.Results.Any(r => r.Error.Code != ErrorCode.TopicAlreadyExists))
             {
-                Name = topic,
-                NumPartitions = 1,
-                ReplicationFactor = 2,
+                throw;
             }
-        });
+            
+            _topics.Add(topic, true);
+        }
     }
 
     private Task GetExistingTopics()
     {
         var metadata = _adminClient.GetMetadata(TimeSpan.FromSeconds(10));
         
-        metadata.Topics.Select(t => t.Topic).ToList().ForEach(t => _topics.Add(t));
+        metadata.Topics.Select(t => t.Topic).ToList().ForEach(t => _topics.Add(t, true));
+        
+        Console.WriteLine($"Found {_topics.Count} topics");
         
         return Task.CompletedTask;
     }

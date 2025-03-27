@@ -36,6 +36,9 @@ public class EventData
 
     [JsonPropertyName("fullDocument")]
     public required Dictionary<string, object> FullDocument { get; set; }
+    
+    [JsonPropertyName("updateDescription")]
+    public Dictionary<string, object>? UpdateDescription { get; set; }
 
     [JsonPropertyName("ns")]
     public required Namespace Ns { get; set; }
@@ -66,7 +69,8 @@ public class Timestamp
     
     public DateTime ToUtcTime()
     {
-        return new BsonDateTime(T).ToUniversalTime();
+        return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddSeconds(T);
     }
 }
 

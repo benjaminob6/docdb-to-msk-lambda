@@ -30,6 +30,8 @@ public class Function(IKafkaPublisher kafkaPublisher)
     {
         try
         {
+            context.Logger.LogDebug($"Processing trigger with {@event.Events} events from {@event.EventSource}");
+            
             // Only get events that are of operation types we care about from the _LATEST collection(s)
             var eventsOfInterest = @event
                 .Events
@@ -56,7 +58,6 @@ public class Function(IKafkaPublisher kafkaPublisher)
             }
 
             return "OK";
-
         }
         catch (Exception e)
         {
