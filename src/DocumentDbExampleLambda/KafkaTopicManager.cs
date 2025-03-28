@@ -37,6 +37,8 @@ public class KafkaTopicManager(IKafkaAdminClientFactory adminClientFactory): IKa
                     ReplicationFactor = 2,
                 }
             ]);
+            
+            _topics.Add(topic, true);
         }
         catch (CreateTopicsException e)
         {

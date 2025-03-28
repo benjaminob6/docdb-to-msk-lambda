@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Amazon.Lambda.Core;
 using Confluent.Kafka;
 using DocumentDbExampleLambda.Models.DocumentDb;
@@ -24,30 +25,49 @@ public class KafkaPublisher(
       var mappedMessages = eventsToPublish.Select(eventMapper.Map)
          .ToList();
 
-      bool success = true;
-
       // Push all messages to produce buffer
+      var producerTasks = new List<Task>();
+      var targetTopics = new List<string>();
+      
       foreach (var mappedMessage in mappedMessages)
       {
-         try
-         {
-            lambdaLogger.LogDebug($"Publishing message to Topic: {mappedMessage.Item1}");
-            
-            await topicManager.CreateTopicIfNotExists(mappedMessage.Item1);
-            
-            await _producer.ProduceAsync(mappedMessage.Item1, mappedMessage.Item2);
-         }
-         catch (ProduceException<string,string> e)
-         {
-            success = false;
-            lambdaLogger.LogError(e, $"Error publishing message to Kafka: {e.Error.Reason}");
-         }
+         lambdaLogger.LogDebug($"Publishing message to Topic: {mappedMessage.Item1}");
+         targetTopics.Add(mappedMessage.Item1);
+         producerTasks.Add(_producer.ProduceAsync(mappedMessage.Item1, mappedMessage.Item2));
       }
 
-      // TODO: Actually good logic :)
-      if (!success)
+      var sw = new Stopwatch();
+      sw.Start();
+      try
       {
-         throw new Exception("Error publishing messages to Kafka");
+         foreach (var topic in targetTopics)
+         {
+            await topicManager.CreateTopicIfNotExists(topic);
+         }
+      }
+      catch (Exception e)
+      {
+         // TODO: Determine if this is retryable or not!
+         lambdaLogger.LogError(e, $"Error ensuring topics: {string.Join(", ", targetTopics)}");
+         throw;
+      }
+      sw.Stop();
+      lambdaLogger.LogDebug("Ensured topics in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
+
+      try
+      {
+         sw.Restart();
+         Task.WaitAll(producerTasks.ToArray());
+         sw.Stop();
+         
+         lambdaLogger.LogInformation("Published {NumMessages} events to Kafka in {ElapsedMilliseconds}ms}",
+            producerTasks.Count,
+            sw.ElapsedMilliseconds);
+      }
+      catch (Exception e)
+      {
+         lambdaLogger.LogError(e, "Error waiting for producer tasks to complete");
+         throw;
       }
    }
 }
